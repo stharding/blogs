@@ -12,4 +12,5 @@ My implementation is on github [here](https://github.com/stharding/ray_tracing).
 
 This is the scene you render at the end if you follow along in the book:
 
+![ray-traced-img](https://www.themetabytes.com/wp-content/uploads/2018/06/1920x1080-ray.png)
 
