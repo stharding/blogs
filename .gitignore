@@ -1,0 +1,10 @@
+*.so
+*.ppm
+*.png
+*.o
+*.ipynb
+*.pdf
+*.DS_Store
+*.pyc
+*.html
+

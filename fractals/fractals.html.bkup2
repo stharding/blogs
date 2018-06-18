@@ -1,0 +1,234 @@
+<script src="http://code.jquery.com/jquery-1.12.0.min.js"></script>
+<script src="http://code.jquery.com/jquery-migrate-1.2.1.min.js"></script>
+<h1 id="fractals-and-webgl">Fractals and WebGL</h1>
+<p>Ok, so this is might be a <a href="https://blog.spawar.navy.mil/tschlosser/2007/06/proposed-rules-for-bloggers.html">'rule 10'</a> post. It's not about programming language features for cybersecurity or anything practical like that. Instead, I decided to write a post on a small subset of the cool stuff you can do with <a href="https://en.wikipedia.org/wiki/WebGL">WebGL</a>---an in-browser implementation of <a href="https://en.wikipedia.org/wiki/OpenGL_ES">OpenGL ES 2.0</a>.</p>
+<p><strong>Disclaimer:</strong> This is not meant to be an OpenGL tutorial. I'll try to mention just a minimal amount of OpenGL boilerplate stuff to get us all on the same page. If you are interested in learning OpenGL there are many good tutorials online. I think that <a href="http://learningwebgl.com/blog/">this one</a> is pretty good especially if you are going for the WebGL variant.</p>
+<p>I'm not going to be doing any 3d graphics stuff this time around. Instead, I'm going to set up some very minimal scaffolding to send four vertices to the <a href="https://www.opengl.org/wiki/Vertex_Shader">vertex shader</a> which will define a canvas on which we can use the <a href="https://www.opengl.org/wiki/Fragment_Shader">fragment shader</a> to draw on.</p>
+<p>The fragment shader gives us the ability to specify the color for each pixel on the canvas. So, what are we going to draw? <a href="https://en.wikipedia.org/wiki/Fractal">Fractals</a> of course!</p>
+<p>Why? Well, first of all, they are really cool. Second, they can be pretty computationally expensive so they really show off the massive parallelism you can exploit on the GPU.</p>
+<p>On the off chance that someone reading this doesn't know what a <a href="https://en.wikipedia.org/wiki/Fractal">fractal</a> is, let's just say that a fractal is a self similar structure. How similar? Well, it turns out that there can be a bit of flexibility on that.</p>
+<h4 id="geometric-fractals">Geometric fractals</h4>
+<p>Let's start with a simple &quot;geometric fractal&quot;. Below you see a triangle. If you click on the 'increase' button, it will draw another triangle inside of it which makes three more triangles around the corners of the original. Click it again and each of those will get a triangle inside of them and so on. Go ahead and play around with it. (Note: this is not using WebGL. This one is so simple I opted to implement it on a 2d html5 canvas.)</p>
+<h5 id="sierpinskis-triangle">Sierpinski's Triangle</h5>
+<canvas class="triangle" width="400" height="410">
+</canvas>
+<br/>
+<button class="triangle-up">
+increase
+</button>
+<button class="triangle-down">
+decrease
+</button>
+<p><label  class="triangle-label">iterations = 0</label></p>
+<script>
+function rotate(rotate_point, pivot_point, theta) {
+  var translated = {x: rotate_point.x - pivot_point.x, y: rotate_point.y - pivot_point.y};
+
+  var result_point = {
+    x: translated.x * Math.cos(theta) - translated.y * Math.sin(theta),
+    y: translated.x * Math.sin(theta) + translated.y * Math.cos(theta)
+  };
+  return {x: result_point.x + pivot_point.x, y: result_point.y + pivot_point.y};
+}
+
+var fillStyle = '#ecffff';
+
+(function() {
+  var canvas        = $("canvas.triangle")[0];
+  var ctx           = canvas.getContext('2d');
+  var triButtonUp   = $("button.triangle-up");
+  var triButtonDown = $("button.triangle-down");
+  var triLabel      = $("label.triangle-label")[0];
+  var scalar        = window.devicePixelRatio || 1;
+
+  canvas.style.width  = canvas.width  + "px";
+  canvas.style.height = canvas.height + "px";
+  canvas.width        = canvas.width  * scalar;
+  canvas.height       = canvas.height * scalar;
+
+  var triIterations = 0;
+
+  var p1 = {x: canvas.width * 0.1, y: canvas.height * 0.75};
+  var p2 = {x: canvas.width * 0.9, y: canvas.height * 0.75};
+  var p3 = rotate(p2, p1, -Math.PI / 3);
+
+  var drawTriangle1 = function(p1, p2, p3) {
+    ctx.beginPath();
+    ctx.moveTo(p1.x, p1.y);
+    ctx.lineTo(p2.x, p2.y);
+    ctx.lineTo(p3.x, p3.y);
+    ctx.lineTo(p1.x, p1.y);
+    ctx.stroke();
+    ctx.fill();
+    ctx.closePath();
+  }
+
+  var midpoint = function(p1, p2) {
+    return {
+      x: p1.x - (p1.x - p2.x)/2,
+      y: p1.y - (p1.y - p2.y)/2
+    }
+  }
+
+  var drawSierpinsky = function(p1, p2, p3, triIterations) {
+    if (triIterations <= 0) {
+      drawTriangle1(p1, p2, p3);
+      return;
+    }
+
+    drawSierpinsky(midpoint(p1, p2), p2, midpoint(p2, p3), triIterations - 1);
+    drawSierpinsky(p1, midpoint(p1, p2), midpoint(p1, p3), triIterations - 1);
+    drawSierpinsky(midpoint(p1, p3), midpoint(p2, p3), p3, triIterations - 1);
+  }
+
+  var triRender = function() {
+    drawSierpinsky(p1, p2, p3, triIterations);
+  }
+
+  ctx.fillStyle = fillStyle;
+
+  triButtonUp.on('click', function() {
+    if (triIterations < 8) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ++triIterations;
+      triLabel.innerHTML = "iterations = " + triIterations;
+      triRender();
+    }
+  });
+
+  triButtonDown.on('click', function() {
+    if (triIterations > 0) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      --triIterations;
+      triLabel.innerHTML = "iterations = " + triIterations;
+      triRender();
+    }
+  });
+
+  triRender();
+})()
+</script>
+<p>This is known as the <a href="https://en.wikipedia.org/wiki/Sierpinski_triangle">Sierpinski Triangle</a>. There are a bunch of other geometric fractals we could explore, but lets move on to some more complicated and interesting ones.</p>
+<h5 id="koch-snowflake">Koch Snowflake</h5>
+<canvas class="snowflake" width="500" height="500">
+</canvas>
+<br/>
+<button class="snowflake-up">
+increase
+</button>
+<button class="snowflake-down">
+decrease
+</button>
+<p><label  class="snowflake-label">iterations = 0</label></p>
+<script>
+(function() {
+  var canvas = $("canvas.snowflake")[0];
+  var ctx = canvas.getContext('2d');
+  var snowButtonUp = $("button.snowflake-up");
+  var snowButtonDown = $("button.snowflake-down");
+  var label = $("label.snowflake-label")[0];
+  var scalar = window.devicePixelRatio || 1;
+
+  canvas.style.width  = canvas.width  + "px";
+  canvas.style.height = canvas.height + "px";
+
+  canvas.width  = canvas.width  * scalar;
+  canvas.height = canvas.height * scalar;
+
+  var iterations = 0;
+
+  var midpoints = function(p1, p2) {
+    return [{
+      x: p1.x - (p1.x - p2.x)/3,
+      y: p1.y - (p1.y - p2.y)/3
+    }, {
+      x: p1.x - 2*(p1.x - p2.x)/3,
+      y: p1.y - 2*(p1.y - p2.y)/3
+    }];
+  }
+
+  var drawFractal = function(p1, p2, p3, iterations) {
+    var drawLineFractal = function(p1, p2, iterations) {
+      if (iterations <= 0) {
+        ctx.lineTo(p2.x, p2.y);
+        return;
+      }
+
+      var mps, mp1, mp2, tp;
+      mps = midpoints(p1, p2);
+      mp1 = mps[0];
+      mp2 = mps[1];
+
+      tp = rotate(mp2, mp1, Math.PI / 3);
+
+      drawLineFractal(p1, mp1, iterations - 1);
+      drawLineFractal(mp1, tp, iterations - 1);
+      drawLineFractal(tp, mp2, iterations - 1);
+      drawLineFractal(mp2, p2, iterations - 1);
+    }
+
+    drawLineFractal(p1, p2, iterations);
+    drawLineFractal(p2, p3, iterations);
+    drawLineFractal(p3, p1, iterations);
+  }
+
+  var p1 = {x: canvas.width * 0.1, y: canvas.height * 0.75};
+  var p2 = {x: canvas.width * 0.9, y: canvas.height * 0.75};
+
+  p3 = rotate(p2, p1, -Math.PI / 3);
+
+  var snowRender = function() {
+    ctx.beginPath();
+    ctx.moveTo(p1.x, p2.y);
+    drawFractal(p1, p2, p3, iterations);
+    ctx.stroke();
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  ctx.fillStyle = fillStyle;
+  snowRender();
+
+  snowButtonUp.on('click', function() {
+    if (iterations < 8) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ++iterations;
+      label.innerHTML = "iterations = " + iterations;
+      snowRender();
+
+    }
+  });
+
+  snowButtonDown.on('click', function() {
+    if (iterations > 0) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      --iterations;
+      label.innerHTML = "iterations = " + iterations;
+      snowRender();
+    }
+  });
+})()
+</script>
+<h4 id="gratuitous-mandelbrot-set-fractal">Gratuitous Mandelbrot set fractal:</h4>
+<p>Whenever you hear about fractals (at least non-geometric fractals), chances are you hear about the <a href="https://en.wikipedia.org/wiki/Mandelbrot_set">Mandelbrot set</a>.</p>
+<div class="sourceCode"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span class="dt">const</span> <span class="dt">float</span> max = <span class="fl">100.</span><span class="dv">0</span>;
+<span class="dt">float</span> mandelbrot(<span class="dt">float</span> fx, <span class="dt">float</span> fy) {
+  <span class="dt">float</span> iteration  = <span class="fl">0.</span><span class="dv">0</span>;
+  <span class="dt">float</span> x          = <span class="fl">0.</span><span class="dv">0</span>;
+  <span class="dt">float</span> y          = <span class="fl">0.</span><span class="dv">0</span>;
+  <span class="dt">float</span> xtemp      = <span class="fl">0.</span><span class="dv">0</span>;
+
+  <span class="kw">for</span> ( <span class="dt">float</span> i = <span class="fl">0.</span><span class="dv">0</span>; i &lt; max; ++i  )
+  {
+    <span class="kw">if</span> ( sqrt(x * x + y * y) &lt;= <span class="fl">4.</span><span class="dv">0</span> ) {
+      xtemp = x * x - y * y + fx;
+      y = <span class="fl">2.</span><span class="dv">0</span> * x * y + fy;
+      x = xtemp;
+      iteration = i;
+    }
+    <span class="kw">else</span>{ <span class="kw">break</span>; }
+  }
+  <span class="kw">return</span> iteration;
+}</code></pre></div>
+<h4 id="julia-set-more-interesting">Julia Set (More interesting):</h4>
+<h4 id="newton-fractals">Newton Fractals:</h4>
