@@ -1,3 +1,0 @@
-/home/harding/blogs/wrap_cpp/build/CMakeFiles/edit_cache.dir
-/home/harding/blogs/wrap_cpp/build/CMakeFiles/rebuild_cache.dir
-/home/harding/blogs/wrap_cpp/build/CMakeFiles/DES3.dir
