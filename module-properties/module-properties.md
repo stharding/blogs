@@ -213,4 +213,4 @@ sys.modules[__name__] = new
 
 Note that since we re-named the `@property`s, we no longer need the setters.
 
-Now we truly can have our cake and eat it too.
+This is a python2/3 compatible recipe for lazy module loading while maintaining the semantics of eager loading (and symbol lifting) in a package `__init__.py`
