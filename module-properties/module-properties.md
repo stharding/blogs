@@ -118,12 +118,99 @@ class MyModule(ModuleType):
         return _module1
 ```
 
-Now, is we make an instance of `MyModule`, those properties will work as expected. Additionally, we will need to replace the existing module in the cache with an instance of `MyModule`:
+Now, if we make an instance of `MyModule`, those properties should work as expected. Additionally, we will need to replace the existing module in the cache with an instance of `MyModule`:
 
 ```python
 import sys
 sys.modules[__name__] = MyModule(__name__)
 ```
 
-This is very close to a working solution, but there are two missing pieces, and one improvement I like to make.
+This is very close to a working solution, but there are still some missing pieces.
 
+This code touches on one of the areas which are significantly different between python2 and python3. Much of the import mechanisms have been moved from C code in the interpreter to python code that you can inspect and interact with. This results in subtle differences in what happens when you do an import. Here is some code that, so far as I can tell, runs the same in both versions of the language:
+
+```python
+import sys
+import importlib
+from types import ModuleType
+
+
+class MyModule(ModuleType):
+    @property
+    def module1(self):
+        if not self.__dict__.get('module1'):
+            self.__dict__['module1'] = importlib.import_module('.module1', __package__)
+
+        return self.__dict__['module1']
+
+    @module1.setter
+    def module1(self, mod):
+        self.__dict__['module1'] = mod
+
+    # and so on for all the modules
+
+old = sys.modules[__name__]
+new = MyModule(__name__)
+new.__path__ = old.__path__
+
+for k, v in list(old.__dict__.items()):
+    new.__dict__[k] = v
+
+sys.modules[__name__] = new
+```
+
+It turns out that in python3, we need a setter because deep in the python code that performs the import it does a `setattr` on the module, while in the python2 version it relies on the builtin `__import__` function which seems to manipulate the module `__dict__` directly.
+
+There is one last element that could use some improvement.
+
+When I'm developing, I spend a lot of time in the REPL (I prefer iPython) and I rely on tab completion. Since `@property` methods don't end up in the class `__dict__` the sub-modules don't auto-complete on tab. Let's fix that.
+
+```python
+import sys
+import importlib
+from types import ModuleType
+
+
+class MyModule(ModuleType):
+
+    def __init__(self, name):
+        super(MyModule, self).__init__(name)
+        self.module1 = None
+        self.module2 = None
+        self.module3 = None
+
+    def __getattribute__(self, attr):
+        val = object.__getattribute__(self, attr)
+        if val is None:
+            try:
+                ret = object.__getattribute__(self, '_' + attr)
+            except AttributeError:
+                return None
+
+            setattr(self, attr, ret)
+            return ret
+
+        return val
+
+    @property
+    def _module1(self):
+        if not self.__dict__.get('module1'):
+            self.__dict__['module1'] = importlib.import_module('.module1', __package__)
+
+        return self.__dict__['module1']
+
+    # and so on for all the modules
+
+old = sys.modules[__name__]
+new = MyModule(__name__)
+new.__path__ = old.__path__
+
+for k, v in list(old.__dict__.items()):
+    new.__dict__[k] = v
+
+sys.modules[__name__] = new
+```
+
+Note that since we re-named the `@property`s, we no longer need the setters.
+
+Now we truly can have our cake and eat it too.
